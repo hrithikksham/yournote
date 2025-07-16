@@ -10,7 +10,12 @@ from pprint import pprint
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
-
+from app.utils.auth import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    create_refresh_token  # ✅ Add this
+)
 
 @router.post("/register", response_model=UserOut)
 async def register(user: UserCreate):
@@ -44,8 +49,14 @@ async def login(user: UserLogin):
     if not db_user or not verify_password(user.password, db_user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    token = create_access_token({"sub": str(db_user["_id"])})
-    return {"access_token": token, "token_type": "bearer"}
+    access_token = create_access_token({"sub": str(db_user["_id"])})
+    refresh_token = create_refresh_token({"sub": str(db_user["_id"])})
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
 
 @router.get("/me", response_model=UserOut)
 async def get_me(token: str = Depends(oauth2_scheme)):

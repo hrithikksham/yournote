@@ -6,7 +6,7 @@ client = AsyncIOMotorClient(MONGODB_URI)
 db = client["yournote"]  # ✅ Make sure it's explicitly the right DB name
 
 def get_db() -> AsyncIOMotorDatabase:
-    return database
+    return db
 
 async def connect_to_mongo():
     try:

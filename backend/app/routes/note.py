@@ -1,4 +1,3 @@
-# app/routes/note.py
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from app.schemas.note_schema import NoteCreate, NoteUpdate, NoteOut
 from app.database import db
@@ -10,15 +9,11 @@ import shutil
 
 router = APIRouter(prefix="/api/notes", tags=["Notes"])
 
-@router.get("/test")
-async def test_note():
-    return {"message": "note route is active"}
-    
 @router.post("/", response_model=NoteOut)
 async def create_note(note: NoteCreate, user=Depends(get_current_user)):
     note_dict = note.dict()
     note_dict.update({
-        "user_id": user["id"],
+        "user_id": str(user["id"]),
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     })
@@ -26,20 +21,21 @@ async def create_note(note: NoteCreate, user=Depends(get_current_user)):
     note_dict["id"] = str(result.inserted_id)
     return NoteOut(**note_dict)
 
-
 @router.get("/", response_model=list[NoteOut])
 async def get_notes(user=Depends(get_current_user)):
-    notes_cursor = db["notes"].find({"user_id": user["id"]})
+    notes_cursor = db["notes"].find({"user_id": str(user["_id"])})
     notes = []
     async for note in notes_cursor:
         note["id"] = str(note["_id"])
         notes.append(NoteOut(**note))
     return notes
 
-
 @router.put("/{note_id}", response_model=NoteOut)
 async def update_note(note_id: str, update_data: NoteUpdate, user=Depends(get_current_user)):
-    note = await db["notes"].find_one({"_id": ObjectId(note_id), "user_id": user["id"]})
+    note = await db["notes"].find_one({
+        "_id": ObjectId(note_id),
+        "user_id": str(user["_id"])
+    })
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
 
@@ -54,22 +50,26 @@ async def update_note(note_id: str, update_data: NoteUpdate, user=Depends(get_cu
     updated_note["id"] = str(updated_note["_id"])
     return NoteOut(**updated_note)
 
-
 @router.delete("/{note_id}")
 async def delete_note(note_id: str, user=Depends(get_current_user)):
-    result = await db["notes"].delete_one({"_id": ObjectId(note_id), "user_id": user["id"]})
+    result = await db["notes"].delete_one({
+        "_id": ObjectId(note_id),
+        "user_id": str(user["_id"])
+    })
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Note not found")
     return {"message": "Note deleted successfully"}
 
-
 @router.post("/upload-image/")
 async def upload_note_image(file: UploadFile = File(...), user=Depends(get_current_user)):
-    uploads_dir = "static/note_images"
+    uploads_dir = "app/static/note_images"
     os.makedirs(uploads_dir, exist_ok=True)
     file_path = os.path.join(uploads_dir, file.filename)
-    
+
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
-    return {"filename": file.filename, "path": f"/{file_path}"}
+
+    return {
+        "filename": file.filename,
+        "path": f"/static/note_images/{file.filename}"
+    }
