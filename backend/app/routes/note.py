@@ -10,6 +10,10 @@ import shutil
 
 router = APIRouter(prefix="/api/notes", tags=["Notes"])
 
+@router.get("/test")
+async def test_note():
+    return {"message": "note route is active"}
+    
 @router.post("/", response_model=NoteOut)
 async def create_note(note: NoteCreate, user=Depends(get_current_user)):
     note_dict = note.dict()

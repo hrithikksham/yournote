@@ -33,8 +33,9 @@ def read_root():
     return {"Hello": "Welcome to YourNote API! 🚀"}
 
 # Routes
+
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 #app.include_router(user.router, prefix="/api/user", tags=["User"])
-app.include_router(note.router, prefix="/api/notes", tags=["Note"])
+app.include_router(note.router, tags=["Note"])
 #app.include_router(journal.router, prefix="/api/journal", tags=["Journal"])
 #app.include_router(reminder.router, prefix="/api/reminder", tags=["Reminder"])
