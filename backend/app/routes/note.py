@@ -61,15 +61,31 @@ async def delete_note(note_id: str, user=Depends(get_current_user)):
     return {"message": "Note deleted successfully"}
 
 @router.post("/upload-image/")
-async def upload_note_image(file: UploadFile = File(...), user=Depends(get_current_user)):
+async def upload_note_image(
+    file: UploadFile = File(...),
+    user=Depends(get_current_user)
+):
+    # Validate file type (optional)
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid image format")
+
+    # Save path
     uploads_dir = "app/static/note_images"
     os.makedirs(uploads_dir, exist_ok=True)
-    file_path = os.path.join(uploads_dir, file.filename)
 
+    # Unique file name to avoid overwriting
+    filename = f"{user['id']}_{datetime.utcnow().timestamp()}_{file.filename}"
+    file_path = os.path.join(uploads_dir, filename)
+
+    # Save file
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    # Public path for frontend use
+    public_path = f"/static/note_images/{filename}"
+
     return {
-        "filename": file.filename,
-        "path": f"/static/note_images/{file.filename}"
+        "message": "Image uploaded successfully",
+        "filename": filename,
+        "path": public_path
     }
